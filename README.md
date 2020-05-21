@@ -63,7 +63,7 @@ a port-number).
 An executable version can be created with the following command:
 
 ```
-dotnet publish -c Release -o WirelessDisplayServer_executable -r win-x64 --self-contained
+dotnet publish -c Release -o ..\WirelessDisplayServer_executable -r win-x64 --self-contained
 ```
 The paremter `--self-contained` creates a 'stand-alone' executable version. This 
 paremeter can be omitted, if .NET-Core version 3.1 is installed on the target system.
