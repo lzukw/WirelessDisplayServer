@@ -1,0 +1,156 @@
+﻿<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>WirelessDisplay</title>
+    <link rel="stylesheet" href="style/w3.css" />
+    <link rel="stylesheet" href="style/w3-theme-teal.css" />
+    <link rel="stylesheet" href="style/fontawesome-free-5.13.0-web/css/all.min.css" />
+</head>
+<body onload="showStartPlayerPage()">
+    <!-- Header -->
+    <header class="w3-container w3-theme w3-padding" id="myHeader">
+        <span class="w3-container w3-display-topright">
+            <i class="fas fa-video" style="font-size: 3em;"></i>
+        </span>
+        <div class="w3-center">
+            <h1 class="w3-xxxlarge w3-animate-bottom">Wireless Display</h1>
+        </div>
+    </header>
+
+    <hr />
+
+    <!-- Main Content -->
+    <div class="container">
+        <main role="main">
+
+            <div class="w3-container">
+                <div class="w3-center">
+                    <img src="img/overview.svg" alt="Communication sheme and used hardware" style="width: 80%; max-width: 50em;">
+                </div>
+                <div class="w3-padding w3-white w3-display-container">
+                    <p>
+                        Stream the screen-contents of the presentation-computer via WLAN to the
+                        projecting-computer, which then displays the screen-contents using the projector.
+                    </p>
+                </div>
+            </div>
+
+            <hr />
+
+            <div class="w3-row-padding">
+
+                <div class="w3-half">
+                    <div class="w3-responsive w3-card-4">
+                        <div class="w3-padding w3-white w3-container w3-border">
+                            <h2 class="w3-theme w3-padding">Prerequisites</h2>
+                            <p>
+                                Either
+                                <a href="https://en.wikipedia.org/wiki/Virtual_Network_Computing" target="_blank" rel="noopener noreferrer">VNC</a>
+                                or
+                                <a href="https://en.wikipedia.org/wiki/FFmpeg" target="_blank" rel="noopener noreferrer">FFmpeg</a>
+                                is used for streaming. Therefore, on the presentation-computer either a
+                                VNC-server, or ffmpeg must be installed.
+                            </p>
+                            <p>
+                                VNC is very efficient and suitable for WLAN with low-bandwidth. However, changes of
+                                large areas of the screen can take some seconds. On the other hand, FFmpeg produces much
+                                network-traffic, but has low latency.
+                            </p>
+                            <p>For installation-instructions and further details see this pdf-file:</p>
+                            <a class="w3-button w3-theme-light" href="pdf/wireless-projector-instructions.pdf" target="_blank">
+                                <i class="fas fa-file-pdf w3-text-red" style="font-size:2.5em"></i>
+                                wireless-projector-instructions.pdf
+                            </a>
+                        </div>
+                        <!--hr /-->
+                    </div>
+                </div>
+
+                <div class="w3-half">
+                    <div class="w3-responsive w3-card-4">
+                        <div class="w3-padding w3-white w3-container w3-border">
+                            <h2 class="w3-theme w3-padding">Streaming</h2>
+                            <p> IP-Address of projecting-computer: <span id="ProjectingComputerIP" class="w3-deep-orange"></span></p>
+                      
+                            <form id="FormToStartPlayer" class="w3-padding w3-white w3-container w3-border" action="javascript:void(0);" onsubmit="startPlayer()">
+
+                                <p>
+                                    Select screen resolution of projecting-computer (Initial resolution is 
+                                    <span id="InitialResolutionStart"></span>):
+                                </p>
+                                <select id="ScreenResolutionStart">
+                                    <!--options inserted by javascript -->
+                                </select>
+
+                                <p>Select the streaming-method:</p>
+
+                                <input id="RadioButtonVNC" type="radio" class="w3-radio" name="StreamingMethod" value="VNC" checked="checked"/>
+                                <label>VNC</label>
+                                <br />
+                                <input id="RadioButtonFFmpeg" type="radio" class="w3-radio" name="StreamingMethod" value="FFmpeg" />
+                                <label>FFmpeg</label>
+                                <br />
+
+                                <p>
+                                    The port-number is either the port-number used by the connection between
+                                    VNC-server and VNC-viewer, or the port-number used by ffmpeg/ffplay.
+                                </p>
+                                <label>Port-number:</label>
+                                <input id="PortNo" name="PortNo" min="1025" max="65535" value="5500" />
+
+                                <hr />
+
+                                <input type="submit" value="Start streaming" class="w3-button w3-theme" />
+
+                            </form>
+                           
+
+                            <form id="FormToStopPlayer" class="w3-padding w3-white w3-container w3-border" action="javascript:void(0);" onsubmit="stopPlayer()">
+                                <p>
+                                    Select screen resolution of projecting-computer (Initial resolution is
+                                    <span id="InitialResolutionStop"></span>):
+                                </p>
+                                <select id="ScreenResolutionStop">
+                                    <!--options inserted by javascript -->
+                                </select>
+
+                                <input type="submit" value="Stop streaming" class="w3-button w3-theme" />
+                            </form>
+                            
+                            <div id="ErrorPage">
+                                <h3 class="w3-text-red">Error:</h3>
+                                <form class="w3-padding w3-white w3-container w3-border" action="javascript:void(0);" onsubmit="confirmError()">
+                                    <p id="ErrorMessage" class="w3-text-red"></p>
+                                    <input type="submit" value="Try again" class="w3-button w3-theme" />
+                                </form>
+                            </div>
+                          
+                       
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </main>
+    </div>
+
+    <hr />
+
+    <!-- Footer -->
+    <footer class="w3-container w3-theme-dark w3-padding-16">
+        <h3>Wireless Display</h3>
+        <p class="w3-opacity">Version 0.8 from Mai 2020</p>
+        <div style="position:relative;bottom:55px;" class="w3-tooltip w3-right">
+            <span class="w3-text w3-theme-light w3-padding">Go To Top</span>
+            <a class="w3-text-white" href="#myHeader">
+                <span class="w3-xlarge"><i class="fa fa-chevron-circle-up"></i></span>
+            </a>
+        </div>
+    </footer>
+
+    <script src="js/site.js" asp-append-version="true"></script>
+
+</body>
+</html>
