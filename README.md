@@ -60,10 +60,13 @@ a port-number).
 
 ## Installing
 
-An executable version can be created with the following command:
+An executable version can be created with the following commands (from within the folder,
+where `Program.cs` and `Startup.cs` are):
 
 ```
-dotnet publish -c Release -o ..\WirelessDisplayServer_executable -r win-x64 --self-contained
+mkdir ..\..\WirelessDisplayServer_executable 
+copy -Recurse ..\Third_Party\ ..\..\WirelessDisplayServer_executable\
+dotnet publish -c Release -o ..\..\WirelessDisplayServer_executable\WirelessDisplayServer -r win-x64 --self-contained
 ```
 The paremter `--self-contained` creates a 'stand-alone' executable version. This 
 paremeter can be omitted, if .NET-Core version 3.1 is installed on the target system.

@@ -27,7 +27,9 @@ namespace WirelessDisplayServer.Controllers
         [HttpGet("FfplayStarted")]
         public bool Get_FfplayStarted()
         {
-            return _streamPlayerService.FfplayStarted;
+            bool started = _streamPlayerService.FfplayStarted;
+            _logger.LogInformation($"GET: api/StreamPlayer/FfplayStarted. Returning '{started}'");
+            return started;
         }
 
         // GET: api/StreamPlayer/VncViewerStarted
@@ -36,7 +38,9 @@ namespace WirelessDisplayServer.Controllers
         [HttpGet("VncViewerStarted")]
         public bool Get_VncViewerStarted()
         {
-            return _streamPlayerService.VncViewerStarted;
+            bool started = _streamPlayerService.VncViewerStarted;
+            _logger.LogInformation($"GET: api/StreamPlayer/VncViewerStarted. Returning '{started}'");
+            return started;
         }
 
         // POST: api/StreamPlayer/StartFfplay
@@ -46,6 +50,7 @@ namespace WirelessDisplayServer.Controllers
         [HttpPost("StartFfplay")]
         public void Post_StartFfplay([FromBody] UInt16 portNo)
         {
+            _logger.LogInformation($"POST: api/StreamPlayer/StartFfplay. Posted port-number: {portNo}");
             _streamPlayerService.StartFfplay(portNo);
         }
 
@@ -56,6 +61,7 @@ namespace WirelessDisplayServer.Controllers
         [HttpPost("StartVncViewerReverse")]
         public void Post_StartVncViewer([FromBody] UInt16 portNo)
         {
+            _logger.LogInformation($"POST: api/StreamPlayer/StartVncViewerReverse. Posted port-number: {portNo}");
             _streamPlayerService.StartVncViewerReverse(portNo);
         }
 
@@ -65,6 +71,7 @@ namespace WirelessDisplayServer.Controllers
         [HttpPost("StopAllStreamPlayers")]
         public void Post_StopAllStreamPlayers()
         {
+            _logger.LogInformation("POST: api/StreamPlayer/StopAllStreamPlayers");
             _streamPlayerService.StopAllStreamPlayers();
         }
 

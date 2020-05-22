@@ -29,7 +29,9 @@ namespace WirelessDisplayServer.Controllers
         [HttpGet("AvailableScreenResolutions")]
         public IEnumerable<string> Get_AvailableScreenResolutions()
         {
-            return _screenResolutionService.AvailableScreenResolutions;
+            List<string> resolution = _screenResolutionService.AvailableScreenResolutions;
+            _logger.LogInformation($"GET: api/ScreenRes/AvailableScreenResolutions. Returning: '{System.Text.Json.JsonSerializer.Serialize(resolution)}'");
+            return resolution;
         }
 
         // GET: api/ScreenRes/InitialScreenResolution
@@ -38,7 +40,11 @@ namespace WirelessDisplayServer.Controllers
         [HttpGet("InitialScreenResolution")]
         public string Get_InitialScreenResolution()
         {
-            return $"\"{_screenResolutionService.InitialScreenResolution}\"";
+            // Don't know, why the extra double-quotes must be addes manually, but
+            // without them, the fetch-calls in site.js don't work correctly.
+            string resolution = $"\"{_screenResolutionService.InitialScreenResolution}\"";
+            _logger.LogInformation($"GET: api/ScreenRes/InitialScreenResolution. Returning: '{resolution}'");
+            return resolution;
         }
 
         // GET: api/ScreenRes/CurrentScreenResolution
@@ -47,7 +53,11 @@ namespace WirelessDisplayServer.Controllers
         [HttpGet("CurrentScreenResolution")]
         public string Get_CurrentScreenResolution()
         {
-            return $"\"{_screenResolutionService.CurrentScreenResolution}\"";
+            // Don't know, why the extra double-quotes must be addes manually, but
+            // without them, the fetch-calls in site.js don't work correctly.
+            string resolution = $"\"{_screenResolutionService.CurrentScreenResolution}\"";
+             _logger.LogInformation($"GET: api/ScreenRes/CurrentScreenResolution. Returning: '{resolution}'");
+            return resolution;
         }
 
         // POST: api/ScreenRes/SetScreenResolution
@@ -57,6 +67,7 @@ namespace WirelessDisplayServer.Controllers
         [HttpPost("SetScreenResolution")]
         public void Post_SetScreenResolution([FromBody] string postDataString)
         {
+            _logger.LogInformation($"POST: api/ScreenRes/SetScreenResolution. Data: '{postDataString}'");
             _screenResolutionService.SetScreenResolution(postDataString);
         }
 

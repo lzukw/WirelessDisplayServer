@@ -10,6 +10,8 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 
+using System.IO;
+
 using WirelessDisplayServer.Services;
 
 namespace WirelessDisplayServer
@@ -42,29 +44,37 @@ namespace WirelessDisplayServer
 
             //Check, if executeables are available:
             Console.WriteLine($"Current working-directory is: '{System.IO.Directory.GetCurrentDirectory()}'");
-            if (!System.IO.File.Exists(pathToVncViewer))
+
+            FileInfo vncViewerExecutable = new FileInfo(pathToVncViewer);
+            if (!vncViewerExecutable.Exists)
             {
-                throw new ArgumentException($"Can't find VNC-Viewer-Executable at '{pathToVncViewer}'");
+                throw new FileNotFoundException($"Can't find VNC-Viewer-Executable at '{vncViewerExecutable.FullName}'. Consider changing appsettings.json.");
             }
-            if (!System.IO.File.Exists(pathToFFplay))
+
+            FileInfo ffplayExecutable = new FileInfo(pathToFFplay);
+            if (!ffplayExecutable.Exists)
             {
-                throw new ArgumentException($"Can't find FFplay-Executable at '{pathToFFplay}'");
+                throw new FileNotFoundException($"Can't find FFplay-Executable at '{ffplayExecutable.FullName}'. Consider changing appsettings.json.");
             }
-            if (!System.IO.File.Exists(pathToScreeRes))
+
+            FileInfo screenresExecutable = new FileInfo(pathToScreeRes);
+            if (!screenresExecutable.Exists)
             {
-                throw new ArgumentException($"Can't find ScreenRes-Executable at '{pathToScreeRes}'");
+                throw new ArgumentException($"Can't find ScreenRes-Executable at '{screenresExecutable.FullName}'. Consider changing appsettings.json.");
             }
 
             // Now create the singletons used for dependency-injection.
             services.AddSingleton<IStreamPlayerService>((s) =>
             {
                 var logger = s.GetRequiredService<ILogger<StreamPlayerService>>();
-                return new StreamPlayerService(logger, pathToVncViewer, vncViewerArgs, pathToFFplay, ffplayArgs);
+                return new StreamPlayerService(logger, 
+                                               vncViewerExecutable.FullName, vncViewerArgs, 
+                                               ffplayExecutable.FullName, ffplayArgs);
             });
             services.AddSingleton<IScreenResolutionService>((s) =>
             {
                 var logger = s.GetRequiredService<ILogger<ScreenResolutionService>>();
-                return new ScreenResolutionService(logger, pathToScreeRes);
+                return new ScreenResolutionService(logger, screenresExecutable.FullName);
             });
 
         }
