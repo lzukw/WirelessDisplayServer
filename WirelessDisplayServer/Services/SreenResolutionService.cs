@@ -1,215 +1,276 @@
 using System;
+using System.IO;
 using System.Collections.Generic;
+using System.Collections.Specialized;
 using System.Diagnostics;
 using System.Text.RegularExpressions;
 using Microsoft.Extensions.Logging;
 
 namespace WirelessDisplayServer.Services
 {
-    /**
-     * Class to run the external program 'screenres.exe', which is used
-     * to obain information about the current screen-resolution, get a 
-     * list of all available screen-resolutions and change the screen-resolution.
-     */
+    //
+    // Summary:
+    //     Class to run the external script for managing screenresolutions:
+    //     Get current screen-resoltution, store initial screen-resolution in
+    //     property, set screen-resolution and list all available 
+    //     screen-resolutions.
     public class ScreenResolutionService : IScreenResolutionService
     {
-        private readonly ILogger<ScreenResolutionService> _logger;
+        //
+        // Readonly properties set by the constructor (dependency injection)
+        //
+        private readonly ILogger<ScreenResolutionService> logger;
 
-        /** The filepath to the screenres.exe-file */
-        protected string _pathToScreenRes { get; }
+        // The vales from the config passed to the constructor
+        private readonly string shell;
+        private readonly string shellArgsTemplate;
+        private readonly string manageScreenResolutionsScriptPath;
+        private readonly string manageScreenResolutionsScriptArgsTemplate;
 
-        /** Constructor, receives the filepath to the 'screenres.exe' */
-        public ScreenResolutionService(ILogger<ScreenResolutionService> logger, string pathToScreenRes)
+
+        //
+        // Summary:
+        //     Constructor.
+        // Parameters:
+        //   logger:
+        //     A logger. Can be null, if no logging is used.
+        //   specificConfig:
+        //     A key-value-collection with condiguration-values, that have  
+        //     their origin in appsettings.json.
+        public ScreenResolutionService(ILogger<ScreenResolutionService> logger, 
+                                        NameValueCollection specificConfig)
         {
             // logger and pathToScreenRes are injected by Dependcy-Injection 
             // by "the runtime" (Program.cs and Startup.cs).
-            _logger = logger;
-            this._pathToScreenRes = pathToScreenRes;
+            this.logger = logger;
+
+            FileInfo scriptPath = new FileInfo( 
+                        specificConfig["Manage_Screen_Resolutions_Script_Path"] );
+            if ( ! scriptPath.Exists )
+            {
+                throw new FileNotFoundException($"Script-file does not exist: '{scriptPath.FullName}'");
+            }
+
+            shell = specificConfig["shell"];
+            shellArgsTemplate = specificConfig["shell_Args_Template"];
+            manageScreenResolutionsScriptPath = scriptPath.FullName;
+            manageScreenResolutionsScriptArgsTemplate = specificConfig["Manage_Screen_Resolutions_Script_Args_Template"];
+
+            try 
+            { 
+                initialScreenResolution = runGetScreenResolution();
+            }
+            catch (WDSServiceException)
+            {
+                logger?.LogWarning("Couldn't get current screen-resoltution, to set initial screen-resolution. Scripting error?");
+                initialScreenResolution ="???";
+            }
         }
 
 
         // Backup-field for InitialScreenResolution
-        protected string _initialScreenResolution = null;
+        private readonly string initialScreenResolution;
 
-        // protected getter for InitialScreenResolution
-        protected string _getInitialScreenResolution()
-        {
-            if (_initialScreenResolution == null)
-            {
-                List<string> outputLines;
-                // run 'screenres.exe /V /S'
-                int exitCode = runScreenRes("/V /S", out outputLines);
-                if (exitCode != 0)
-                {
-                    _logger.LogError("Could not get initial screen-resolution");
-                }
-                Debug.Assert(outputLines.Count == 1);
-
-                MatchCollection mc = Regex.Matches(outputLines[0], @"(\d+)x(\d+).*");
-                Debug.Assert(mc.Count==1);
-                Debug.Assert(mc[0].Groups.Count==3);
-
-                _initialScreenResolution = $"{mc[0].Groups[1]}x{mc[0].Groups[2]}";
-            }
-
-            return _initialScreenResolution;
-        }
+        //
+        // Summary:
+        //     The initial screen-resolution (a sting like "1024x768", without quotes)
+        public string InitialScreenResolution { get => initialScreenResolution; }
 
 
-        /** 
-         * The initial screen-resolution, which is the screen-resolution that was
-         * set, when first calling 'screenres.exe'. The string is for example "1024x768".
-         */
-        public string InitialScreenResolution 
-        { 
-            get 
-            { 
-                return _getInitialScreenResolution();
-            } 
-        }
-
-
-        /** Gets all available screen-resolutions as strings (for example '640x480') */
+        //
+        // Summary:
+        //     All available screen-resolutions as strings (for example '640x480') */
         public List<string> AvailableScreenResolutions 
         { 
             get 
             {
-                // First initialize the value of _initialScreenResolution, if necessary
-                if (_initialScreenResolution == null)
-                {
-                    _getInitialScreenResolution();
-                }
+                List<string> availableScreenResolutions = new List<string>();
 
-                List<string> _availableScreenResolutions = new List<string>();
+                string scriptArgs = manageScreenResolutionsScriptArgsTemplate;
+                scriptArgs = scriptArgs.Replace("%ACTION", "ALL");
+                scriptArgs = scriptArgs.Replace("%RESOLUTION", "null");
 
                 List<string> outputLines;
-                // run 'screenres.exe /V /L'
-                int exitCode = runScreenRes("/V /L", out outputLines);
-                if (exitCode != 0)
+                try 
                 {
-                    _logger.LogError ("Could not get available screen-resolutions.");
+                    outputLines = runManageScreenResScript(scriptArgs);
                 }
-               
+                catch(Exception)
+                {
+                    logger.LogWarning("Could not get available screen-resolutions. Scripting Error?");
+                    availableScreenResolutions.Add("???");
+                    return availableScreenResolutions;
+                }
+                
                 foreach (string outputLine in outputLines)
                 {
-                    MatchCollection mc = Regex.Matches(outputLine, @"(\d+)x(\d+).*");
+                    MatchCollection mc = Regex.Matches(outputLine, @"[^\d]*(\d+x\d+).*");
                     if (mc.Count != 1)
                     {
-                        _logger.LogWarning($"Could not parse line '{outputLine}'");
+                        // Dismiss output-lines, that don't contain a scree-resolution.
                         continue;
                     }
-                    Debug.Assert(mc[0].Groups.Count==3);
-                    string resolution = $"{mc[0].Groups[1]}x{mc[0].Groups[2]}";
-                    if ( ! _availableScreenResolutions.Contains(resolution))
+                    Debug.Assert(mc[0].Groups.Count==2);
+                    string resolution = mc[0].Groups[1].ToString();
+                    if ( ! availableScreenResolutions.Contains(resolution))
                     {
-                        _availableScreenResolutions.Add(resolution);
+                        availableScreenResolutions.Add(resolution);
                     }
                 }
 
-                return _availableScreenResolutions;
+                if (availableScreenResolutions.Count == 0)
+                {
+                    logger.LogWarning("Couldn't get any available screen-resolution. Scripting error?");
+                }
+
+                return availableScreenResolutions;
             }
         }
 
-        /**
-         * The current screen-resolution (for example "640x480").
-         */
+        //
+        // Summary:
+        //     The current screen-resolution (for example "1980x1040").
         public string CurrentScreenResolution
         {
             get
             {
-                // First initialize the value of _initialScreenResolution, if necessary
-                if (_initialScreenResolution == null)
+                string outputLine;
+                try
                 {
-                    _getInitialScreenResolution();
+                    outputLine = runGetScreenResolution();
                 }
-
-                List<string> outputLines;
-                // run 'screenres.exe /V /S'
-                int exitCode = runScreenRes("/V /S", out outputLines);
-                if (exitCode != 0)
+                catch (Exception)
                 {
-                    _logger.LogError ("Could not get current screen-resolution.");
+                    logger.LogWarning("Could not get current screen resolution.");
+                    return "???";
                 }
-                Debug.Assert(outputLines.Count == 1);
-
-                MatchCollection mc = Regex.Matches(outputLines[0], @"(\d+)x(\d+).*");
-                Debug.Assert(mc.Count==1);
-                Debug.Assert(mc[0].Groups.Count==3);
-
-               return $"{mc[0].Groups[1]}x{mc[0].Groups[2]}";
-            }
-            
+                return outputLine;
+            }          
         }
 
 
-        /** 
-         * Set the screen-resolution. The argument must be string beginning with
-         * for example "640x480".
-         */
+        //
+        // Summary:
+        //     Set the screen-resolution.
+        // Parmeters:
+        //   screenResolution:
+        //     A string containing the resolution to set, like "1024x768" 
+        //     (wihtout quotes).
         public void SetScreenResolution(string screenResolution )
         {
-            // First initialize the value of _initialScreenResolution, if necessary
-            if (_initialScreenResolution == null)
-            {
-                _getInitialScreenResolution();
-            }
 
             // Retrieve width and heigth information.
-            MatchCollection mc = Regex.Matches(screenResolution, @"(\d+)x(\d+).*");
-            Debug.Assert(mc.Count==1);
-            Debug.Assert(mc[0].Groups.Count==3);
-
-            string arguments = $"/X:{mc[0].Groups[1]} /Y:{mc[0].Groups[2]}";
-
-            // Run 'screenres.exe /X:nnn /y:mmm'
-            List<string> outputLines;
-            int exitCode = runScreenRes(arguments, out outputLines);
-            if (exitCode != 0)
+            MatchCollection mc = Regex.Matches(screenResolution, @"[^\d]*(\d+x\d+).*");
+            if (mc.Count!=1 && mc[0].Groups.Count==1)
             {
-                _logger.LogError ("Could not set screen-resolution.");
+                throw new WDSServiceException($"BUG: This is not a valid screen-resolution: '{screenResolution}'");
             }
-        }     
+            screenResolution = mc[0].Groups[0].ToString();
 
+            string scriptArgs = manageScreenResolutionsScriptArgsTemplate;
+            scriptArgs = scriptArgs.Replace("%ACTION", "SET");
+            scriptArgs = scriptArgs.Replace ("%RESOLUTION", screenResolution);
 
-        /**
-         * Helper method to call the external program (screenres.exe)
-         */
-        protected int runScreenRes(string arguments, out List<string> outputLines)
-        {
-            _logger.LogInformation($"Starting process '{_pathToScreenRes} {arguments}'");
-
-            outputLines = new List<string>();
-
-            using (Process _screenRes = new Process())
+            try
             {
-                _screenRes.StartInfo.UseShellExecute = false;
-                _screenRes.StartInfo.RedirectStandardOutput = true;
-                _screenRes.StartInfo.RedirectStandardInput = true;
-                _screenRes.StartInfo.FileName = _pathToScreenRes;
-                _screenRes.StartInfo.CreateNoWindow = true;
-                _screenRes.StartInfo.Arguments = arguments;
+                runManageScreenResScript(scriptArgs);
+            }
+            catch (Exception)
+            {
+                logger.LogWarning($"Could not screen-resolution to {screenResolution}");
+            }
+        }    
+
+
+        //
+        // Summary:
+        //     Helper Method to get the screen-resolution
+        private string runGetScreenResolution( int timeout = 10000 )
+        {
+            string scriptArgs = manageScreenResolutionsScriptArgsTemplate;
+            scriptArgs = scriptArgs.Replace("%ACTION", "GET");
+            scriptArgs = scriptArgs.Replace("%RESOLUTION", "null");
+
+            List<string> outputLines = runManageScreenResScript(scriptArgs, timeout);
+
+                //throw new WDSServiceException("ERROR: Script for getting local screen-resolution didn't return the expected value.");
+
+            // Parse outputLines and return first line containing a screen-resolution
+            foreach (string outputLine in outputLines)
+            { 
+                MatchCollection mc = Regex.Matches(outputLines[0], @"[^\d]*(\d+x\d+).*");
+                if (mc.Count==1 && mc[0].Groups.Count==2)
+                {
+                    return mc[0].Groups[1].ToString();
+                }
+            }
+
+            throw new WDSServiceException("Could not parse a valid screen-resolution from script-output");
+        } 
+
+        //
+        // Summary:
+        //     Helper method to call the external program (screenres.exe)
+        // Parameters:
+        //   scriptArgs:
+        //     The space separated arguments to pass to the script.
+        // Returns:
+        //   The lines written to stdout by the script.
+        private List<string> runManageScreenResScript(string scriptArgs, int timeout = 10000)
+        {
+            FileInfo scriptPath = new FileInfo( manageScreenResolutionsScriptPath );
+            if ( ! scriptPath.Exists )
+            {
+                throw new WDSServiceException($"Script-file does not exist: '{scriptPath.FullName}'");
+            }
+
+            List<string> outputLines = new List<string>();
+            
+            string argsForProcess = shellArgsTemplate;
+            argsForProcess = argsForProcess.Replace("%SCRIPT", scriptPath.FullName);
+            argsForProcess = argsForProcess.Replace("%ARGS", scriptArgs); 
+
+            using (Process manageScreenResProcess = new Process())
+            {
+                manageScreenResProcess.StartInfo.FileName = shell;
+                manageScreenResProcess.StartInfo.Arguments = argsForProcess;
+                manageScreenResProcess.StartInfo.WorkingDirectory = scriptPath.Directory.FullName;
+                manageScreenResProcess.StartInfo.UseShellExecute = false;
+                manageScreenResProcess.StartInfo.CreateNoWindow = true;
+                manageScreenResProcess.StartInfo.RedirectStandardOutput = true;
+                manageScreenResProcess.StartInfo.RedirectStandardInput = true;
+
                 try
                 {
-                    _screenRes.Start();
+                    manageScreenResProcess.Start();
                 }
                 catch (Exception e)
                 {
-                    _logger.LogError($"Exception occurred while starting process: {e}");
-                    return 1;
+                    throw new WDSServiceException($"Could not start script for managing screen-resoltuions: {e.Message}");
                 }
 
                 //Wait until screenres-process exits.
-                while (!_screenRes.HasExited) { System.Threading.Thread.Sleep(10); }
+                bool exited = manageScreenResProcess.WaitForExit(timeout);
+
+                if (! exited )
+                {
+                    throw new WDSServiceException($"Process not finished within {timeout} Milliseconds: '{shell} {argsForProcess}'. Scripting Error?");
+                }               
+
+                if (manageScreenResProcess.ExitCode != 0 )
+                {
+                    throw new WDSServiceException($"Process failed with exit-code {manageScreenResProcess.ExitCode}: '{shell} {argsForProcess}'. Scripting Error?");
+                }
 
                 string line;
-                while ((line = _screenRes.StandardOutput.ReadLine()) != null)
+                while ((line = manageScreenResProcess.StandardOutput.ReadLine()) != null)
                 {
                     outputLines.Add(line);
                 }
 
-                _logger.LogInformation($"Process returned with exit-code {_screenRes.ExitCode}");
+                logger.LogInformation($"Script '{scriptPath.Name} {scriptArgs}' returned successfully");
 
-                return _screenRes.ExitCode;
+                return outputLines;
             }
         }
 

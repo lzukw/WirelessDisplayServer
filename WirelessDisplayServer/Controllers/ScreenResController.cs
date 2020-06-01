@@ -12,15 +12,15 @@ namespace WirelessDisplayServer.Controllers
     [ApiController]
     public class ScreenResController : ControllerBase
     {
-        protected ILogger<ScreenResController> _logger { get;  }
-        protected IScreenResolutionService _screenResolutionService { get; }
+        protected ILogger<ScreenResController> logger { get;  }
+        protected IScreenResolutionService screenResolutionService { get; }
 
         public ScreenResController(ILogger<ScreenResController> logger, IScreenResolutionService screenResolutionService)
         {
             // logger and screenResolutionService are injected by Dependcy-Injection 
             // by "the runtime" (Program.cs and Startup.cs).
-            _logger = logger;
-            _screenResolutionService = screenResolutionService;
+            this.logger = logger;
+            this.screenResolutionService = screenResolutionService;
         }
 
         // GET: api/ScreenRes/AvailableScreenResolutions
@@ -29,8 +29,8 @@ namespace WirelessDisplayServer.Controllers
         [HttpGet("AvailableScreenResolutions")]
         public IEnumerable<string> Get_AvailableScreenResolutions()
         {
-            List<string> resolution = _screenResolutionService.AvailableScreenResolutions;
-            _logger.LogInformation($"GET: api/ScreenRes/AvailableScreenResolutions. Returning: '{System.Text.Json.JsonSerializer.Serialize(resolution)}'");
+            List<string> resolution = screenResolutionService.AvailableScreenResolutions;
+            logger?.LogInformation($"GET: api/ScreenRes/AvailableScreenResolutions. Returning: '{System.Text.Json.JsonSerializer.Serialize(resolution)}'");
             return resolution;
         }
 
@@ -42,8 +42,8 @@ namespace WirelessDisplayServer.Controllers
         {
             // Don't know, why the extra double-quotes must be addes manually, but
             // without them, the fetch-calls in site.js don't work correctly.
-            string resolution = $"\"{_screenResolutionService.InitialScreenResolution}\"";
-            _logger.LogInformation($"GET: api/ScreenRes/InitialScreenResolution. Returning: '{resolution}'");
+            string resolution = $"\"{screenResolutionService.InitialScreenResolution}\"";
+            logger?.LogInformation($"GET: api/ScreenRes/InitialScreenResolution. Returning: '{resolution}'");
             return resolution;
         }
 
@@ -55,8 +55,8 @@ namespace WirelessDisplayServer.Controllers
         {
             // Don't know, why the extra double-quotes must be addes manually, but
             // without them, the fetch-calls in site.js don't work correctly.
-            string resolution = $"\"{_screenResolutionService.CurrentScreenResolution}\"";
-             _logger.LogInformation($"GET: api/ScreenRes/CurrentScreenResolution. Returning: '{resolution}'");
+            string resolution = $"\"{screenResolutionService.CurrentScreenResolution}\"";
+             logger?.LogInformation($"GET: api/ScreenRes/CurrentScreenResolution. Returning: '{resolution}'");
             return resolution;
         }
 
@@ -67,8 +67,8 @@ namespace WirelessDisplayServer.Controllers
         [HttpPost("SetScreenResolution")]
         public void Post_SetScreenResolution([FromBody] string postDataString)
         {
-            _logger.LogInformation($"POST: api/ScreenRes/SetScreenResolution. Data: '{postDataString}'");
-            _screenResolutionService.SetScreenResolution(postDataString);
+            logger?.LogInformation($"POST: api/ScreenRes/SetScreenResolution. Data: '{postDataString}'");
+            screenResolutionService.SetScreenResolution(postDataString);
         }
 
     }

@@ -10,15 +10,15 @@ namespace WirelessDisplayServer.Controllers
     [ApiController]
     public class StreamPlayerController : ControllerBase
     {
-        protected ILogger<StreamPlayerController> _logger { get; }
-        protected IStreamPlayerService _streamPlayerService { get; }
+        protected ILogger<StreamPlayerController> logger { get; }
+        protected IStreamSinkService streamSinkService { get; }
 
-        public StreamPlayerController(ILogger<StreamPlayerController> logger, IStreamPlayerService streamPlayerService)
+        public StreamPlayerController(ILogger<StreamPlayerController> logger, IStreamSinkService streamSinkService)
         {
-            // logger and streamPlayerService are injected by Dependcy-Injection 
+            // logger and streamSinkService are injected by Dependcy-Injection 
             // by "the runtime" (Program.cs and Startup.cs).
-            _logger = logger;
-            _streamPlayerService = streamPlayerService;
+            this.logger = logger;
+            this.streamSinkService = streamSinkService;
         }
 
         // GET: api/StreamPlayer/FfplayStarted
@@ -27,8 +27,8 @@ namespace WirelessDisplayServer.Controllers
         [HttpGet("FfplayStarted")]
         public bool Get_FfplayStarted()
         {
-            bool started = _streamPlayerService.FfplayStarted;
-            _logger.LogInformation($"GET: api/StreamPlayer/FfplayStarted. Returning '{started}'");
+            bool started = (streamSinkService.StartedStream == StreamType.FFmpeg);
+            logger?.LogInformation($"GET: api/StreamPlayer/FfplayStarted. Returning '{started}'");
             return started;
         }
 
@@ -38,8 +38,8 @@ namespace WirelessDisplayServer.Controllers
         [HttpGet("VncViewerStarted")]
         public bool Get_VncViewerStarted()
         {
-            bool started = _streamPlayerService.VncViewerStarted;
-            _logger.LogInformation($"GET: api/StreamPlayer/VncViewerStarted. Returning '{started}'");
+            bool started = (streamSinkService.StartedStream == StreamType.VNC);
+            logger?.LogInformation($"GET: api/StreamPlayer/VncViewerStarted. Returning '{started}'");
             return started;
         }
 
@@ -50,8 +50,8 @@ namespace WirelessDisplayServer.Controllers
         [HttpPost("StartFfplay")]
         public void Post_StartFfplay([FromBody] UInt16 portNo)
         {
-            _logger.LogInformation($"POST: api/StreamPlayer/StartFfplay. Posted port-number: {portNo}");
-            _streamPlayerService.StartFfplay(portNo);
+            logger?.LogInformation($"POST: api/StreamPlayer/StartFfplay. Posted port-number: {portNo}");
+            streamSinkService.StartStreaming(StreamType.FFmpeg, portNo);
         }
 
         // POST: api/StreamPlayer/StartVncViewerReverse
@@ -61,8 +61,8 @@ namespace WirelessDisplayServer.Controllers
         [HttpPost("StartVncViewerReverse")]
         public void Post_StartVncViewer([FromBody] UInt16 portNo)
         {
-            _logger.LogInformation($"POST: api/StreamPlayer/StartVncViewerReverse. Posted port-number: {portNo}");
-            _streamPlayerService.StartVncViewerReverse(portNo);
+            logger?.LogInformation($"POST: api/StreamPlayer/StartVncViewerReverse. Posted port-number: {portNo}");
+            streamSinkService.StartStreaming(StreamType.VNC, portNo);
         }
 
         // POST: api/StreamPlayer/StopAllStreamPlayers
@@ -71,8 +71,8 @@ namespace WirelessDisplayServer.Controllers
         [HttpPost("StopAllStreamPlayers")]
         public void Post_StopAllStreamPlayers()
         {
-            _logger.LogInformation("POST: api/StreamPlayer/StopAllStreamPlayers");
-            _streamPlayerService.StopAllStreamPlayers();
+            logger?.LogInformation("POST: api/StreamPlayer/StopAllStreamPlayers");
+            streamSinkService.StopAllStreamPlayers();
         }
 
 

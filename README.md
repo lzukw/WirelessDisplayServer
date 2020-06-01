@@ -19,10 +19,11 @@ projecting-computer by communication with this program (WirelessDisplayServer):
 - Either a VNC-viewer in reverse-mode (listen-mode), or
 - FFplay (ffmpeg) for showing the remote desktop can be started.
 
-For changing the screen-resolution of the projecting-computer the external 
-console-program screenres.exe 
+On windows the following programs are needed:
+
+For changing the screen-resolution the external console-program screenres.exe 
 ( [see here on github](https://github.com/lzukw/ScreenRes) )
-is used. 
+is used. The github-repository also contains screenres.exe.
 
 As VNC-viewer the portable program vncviewer.exe from TightVNC, version 1.3.10 is used
 ( [see here](https://www.tightvnc.com/download/1.3.10/tightvnc-1.3.10_x86_viewer.zip) ).
@@ -30,33 +31,51 @@ As VNC-viewer the portable program vncviewer.exe from TightVNC, version 1.3.10 i
 For FFplay.exe (a receiver for a stream sent by FFmpeg) also a portable version is used
 ( [see here](https://ffmpeg.zeranoe.com/builds/win64/static/ffmpeg-4.2.2-win64-static.zip) ).
 
+As long as github doesn't complain about large files, I provide a copy of 
+TightVNC and ffmpeg my repository 
+[Third-party-tools](https://github.com/lzukw/Third-party-tools).
+
+
 ## Running and Configuration
 
 The source-code of this program (WirelessDisplayServer) is in the folder 
 `WirelessDisplayServer`. From within this directory the program can be started
-using `dotnet run`. But first the necessary third-party executables must be put
-in the correct folders. Three third-party executables are used:
+using `dotnet run`. But first the necessary third-party executables must be 
+made available. 
+
+The executables are not started directly by WirelessDisplayServer, but they 
+are started using the scripts in the directory [Scripts/<operating-system>]. 
+Have a look at the [README.md] in the directory [Scripts] for furhter 
+information.
+
+On Windows three third-party executables are used:
 
 - vncviewer.exe from tightvnc-1.3.10_x86.zip
 - ffplay.exe from ffmpeg-4.2.2-win64-static.zip
 - screenres.exe from the folder ScreenRes
 
-In `appsettings.jcon` the paths of these executables are preset to:
+The scripts in [Scripts/Windows] look for the executables in
 
-- ..\Third_Party\tightvnc-1.3.10_x86\vncviewer.exe
-- ..\Third_Party\ffmpeg-4.2.2-win64-static\bin\ffplay.exe
-- ..\Third_Party\ScreenRes\screenres.exe
+- ..\..\Third_Party\tightvnc-1.3.10_x86\vncviewer.exe
+- ..\..\Third_Party\ffmpeg-4.2.2-win64-static\bin\ffplay.exe
+- ..\..\Third_Party\ScreenRes\screenres.exe
 
-Just extraxt the zip-Files in the folder `Third-party`, and double-check
-the correct paths. If this program can't find the executables in the
-specified paths, `dotnet run` terminates with an exception and a 
-corresponding message.
+Downlaod the zip-Files [tightvnc-1.3.10_x86_viewer.zip] and 
+[ffmpeg-4.2.2-win64-static.zip] and extract them into the 
+[ThirdParty]-folder. Clone the 
+[ScreenRes-Repository](https://github.com/lzukw/ScreenRes) or download it as
+zip and also put it into the [ThirdParty]-folder.
+
+Double-check the correct paths. If this program can't find the executables in 
+the specified paths, the scripts starting these executable fail, and so will
+the whole program.
 
 Feel free to put the executables in other folders and change their
-relative paths in `appsettings.json`. You can also change the 
+relative paths in the scripts. You can also change the 
 command-line-arguments that are used, when these executables are
-started (The substring `ppppp` in the command-line-arguments is replaced with
-a port-number).
+started. When the scripts are started from the WirelessDisplayServer 
+several command-line-arguments are passed to them. See the [README.md] in the
+directory [Scripts] for details.
 
 ## Installing
 
@@ -64,17 +83,19 @@ An executable version can be created with the following commands (from within th
 where `Program.cs` and `Startup.cs` are):
 
 ```
-mkdir ..\..\WirelessDisplayServer_executable 
-copy -Recurse ..\Third_Party\ ..\..\WirelessDisplayServer_executable\
-dotnet publish -c Release -o ..\..\WirelessDisplayServer_executable\WirelessDisplayServer -r win-x64 --self-contained
+mkdir ..\WirelessDisplayServer_executable 
+dotnet publish -c Release -o ..\WirelessDisplayServer_executable\WirelessDisplayServer -r win-x64 --self-contained
 ```
 The paremter `--self-contained` creates a 'stand-alone' executable version. This 
 paremeter can be omitted, if .NET-Core version 3.1 is installed on the target system.
 
-All necessary files are put in the directory `WirelessDisplayServer_executable`.
-The executable to start is called `WirelessDisplayServer.exe`. The configuration
-can still be changed, by changing the contents of `appsettings.json`, which has
-also been copied to `WirelessDisplayServer_executable` by `dotnet publish`.
+The three folders
+
+- [WirelessDisplayServer_executable],
+- [Scripts], and
+- [ThirdParty]
+
+contain the whole executable program.
 
 ## API-calls
 

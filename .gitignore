@@ -2,9 +2,7 @@
 
 # Ignore everthing in folder Third-party, exept the three zip-files
 Third_Party
-!Third_Party/ffmpeg*.zip
-!Third_Party/ScreenRes*.zip
-!Third_Party/tightvnc*.zip
+!ThirdParty/README.md
 
 # Ignore build folder
 WirelessDisplayServer_executable

@@ -10,6 +10,8 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 
+using System.Collections.Specialized;
+using System.Runtime.InteropServices;
 using System.IO;
 
 using WirelessDisplayServer.Services;
@@ -34,48 +36,51 @@ namespace WirelessDisplayServer
             // another Singleton-Instance of ScreenResolutionServie are created. They will be passed
             // to the constructor of the webapi-Controllers.
 
-            // First read configuration-strings from appsettings.json (these settings can be over-
-            // written by command-line-arguments or environment-variables).
-            string pathToVncViewer = Configuration["PathToTightVncViewer"];
-            string vncViewerArgs = Configuration["VncViewerArgs"];
-            string pathToFFplay = Configuration["PathToFFplay"];
-            string ffplayArgs = Configuration["FFplayArgs"];
-            string pathToScreeRes = Configuration["PathToScreenRes"];
-
-            //Check, if executeables are available:
-            Console.WriteLine($"Current working-directory is: '{System.IO.Directory.GetCurrentDirectory()}'");
-
-            FileInfo vncViewerExecutable = new FileInfo(pathToVncViewer);
-            if (!vncViewerExecutable.Exists)
+            // First read configuration-strings from appsettings.json and put them into a 
+            // NameValueCollection specificConfig, which is passed to the constructors of 
+            // StreamPlayerService and ScreenResolutionServie.
+            NameValueCollection specificConfig = new NameValueCollection();
+            string usedOperatingSystem;
+            if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
             {
-                throw new FileNotFoundException($"Can't find VNC-Viewer-Executable at '{vncViewerExecutable.FullName}'. Consider changing appsettings.json.");
+                usedOperatingSystem = "Linux";
+            }
+            else if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
+            {
+                usedOperatingSystem = "macOS";
+            }
+            else if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+            {
+                usedOperatingSystem = "Windows";
+            }
+            else
+            {
+                throw new Exception("Operating System not supported");
             }
 
-            FileInfo ffplayExecutable = new FileInfo(pathToFFplay);
-            if (!ffplayExecutable.Exists)
-            {
-                throw new FileNotFoundException($"Can't find FFplay-Executable at '{ffplayExecutable.FullName}'. Consider changing appsettings.json.");
-            }
+            var osSection = Configuration.GetSection(usedOperatingSystem);
+            var osSectionChildren = osSection.Get<Dictionary<string,string>>();
 
-            FileInfo screenresExecutable = new FileInfo(pathToScreeRes);
-            if (!screenresExecutable.Exists)
-            {
-                throw new ArgumentException($"Can't find ScreenRes-Executable at '{screenresExecutable.FullName}'. Consider changing appsettings.json.");
+            foreach (var keyValuePair in osSectionChildren)
+            { 
+                specificConfig[keyValuePair.Key] = keyValuePair.Value;
             }
 
             // Now create the singletons used for dependency-injection.
-            services.AddSingleton<IStreamPlayerService>((s) =>
+            services.AddSingleton<IStreamSinkService>((s) =>
             {
-                var logger = s.GetRequiredService<ILogger<StreamPlayerService>>();
-                return new StreamPlayerService(logger, 
-                                               vncViewerExecutable.FullName, vncViewerArgs, 
-                                               ffplayExecutable.FullName, ffplayArgs);
+                var logger = s.GetRequiredService<ILogger<StreamSinkService>>();
+                return new StreamSinkService(logger, specificConfig );
             });
             services.AddSingleton<IScreenResolutionService>((s) =>
             {
                 var logger = s.GetRequiredService<ILogger<ScreenResolutionService>>();
-                return new ScreenResolutionService(logger, screenresExecutable.FullName);
+                return new ScreenResolutionService(logger, specificConfig);
             });
+
+            // For debugging purposes: Show current working directory, since 
+            // script-paths are relative
+            Console.WriteLine($"Current working-directory is: '{System.IO.Directory.GetCurrentDirectory()}'");
 
         }
 

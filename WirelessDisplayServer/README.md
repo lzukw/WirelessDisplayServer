@@ -1,3 +1,8 @@
+# The ASP.NET-application
+
+This folder contains the C# ASP.NET application providing the webserver serving
+responses to REST-API-requests.
+
 # How does this all work?
 
 For people who do not know ASP.NET this document describes how this program 
@@ -17,33 +22,34 @@ command creates a program, that can be run and provides a web-api (REST-api) for
 weather-forecast-Items. All things, that have to do with these weather-forcasts
 are deleted from the project. The remaining relevant files are:
 
-- Program.cs
-- Startup.cs
-- appsettings.json
+- [Program.cs]
+- [Startup.cs]
+- [appsettings.json]
 
 Newly created relevant files are:
 
-- IScreenResolutionService.cs and ScreenResolutionService.cs in the subfolder Services.
-- IStreamPlayerService.cs and StreamPlayerService.cs in the subfolder Services.
-- ScreenResController.cs and StreamPlayerCpontroller.cs in the subfolder Controllers.
-- static .html-, .css-, and .js-Files in the subfolder wwwroot.
+- [IScreenResolutionService.cs] and [ScreenResolutionService.cs] in the subfolder [Services].
+- [IStreamPlayerService.cs] and [StreamPlayerService.cs] in the subfolder [Services].
+- [ScreenResController.cs] and [StreamPlayerCpontroller.cs] in the subfolder [Controllers].
+- static .html-, .css-, and .js-Files in the subfolder [wwwroot].
 
 ## The webserver run by ASP.NET
 
 All the magic is done whithin "code behind the scenes" by ASP.NET. All this code is
-configured in the two files `Program.cs` and `Startup.cs`. The File `Program.cs`
+configured in the two files [Program.cs] and [Startup.cs]. The File [Program.cs]
 contains the entry-Point for the Program `public static void Main(string[] args)`.
 Here an Object, that implements the `IHost`-interface is created and started. This
-host is an object that encapsulates an app's resources ( [see Generic host](https://docs.microsoft.com/en-us/aspnet/core/fundamentals/host/generic-host?view=aspnetcore-3.1) ).
+host is an object that encapsulates an app's resources 
+( [see Generic host](https://docs.microsoft.com/en-us/aspnet/core/fundamentals/host/generic-host?view=aspnetcore-3.1) ).
 One of the services, that are started by this `IHost` is a web-service, that 
 listens for HTTP-Requests on the network. 
 
-The file `Program.cs` has not been modified.
+The file [Program.cs] has not been modified.
 
 When The `IHost` is created, it uses the class `Startup` defined in 
-`Startup.cs`. Here all configuration is done. The following features, which are
+[Startup.cs]. Here all configuration is done. The following features, which are
 offered by the ASP.NET framework, are used, and some of these features are configured
-in `Startup.cs`:
+in [Startup.cs]:
 
 - Configuration
 - Logging
@@ -57,20 +63,28 @@ by the user in several ways. The most important way to provide configration-para
 are:
 
 - Command-line-arguments (which become the `string[] args` paremter of `Main()`)
-- The file `appsettings.json`
+- The file [appsettings.json]
 
 The following configuration-parameters are necessary. Their default-values are set in
-`appsettings.json`, but they could be overwritten by providing command-line-arguments:
+[appsettings.json], but they could be overwritten by providing command-line-arguments
+(Neither chaning [appsetting.json], nor providing command-line-args should ever be
+necessary):
 
-- `PathToTightVncViewer`: Path to the VNC-viewer-executable (vncviewer.exe), 
-- `VncViewerArgs`: Command-line-argumentes passed to the the VNC-viewer-executable (vncviewer.exe)
-- `PathToFFplay`:  Path to FFplay.exe
-- `FFplayArgs`: Command-line-arguments passed to FFplay.exe
-- `urls`: Has a value of "http://*:80", which means that the webserver listens on all 
+- 'shell' : cmd.exe or bash
+- 'shell_Args_Template' : Command-line-arguments passed to the shell
+- 'Start_Streaming_Script_Path': Path to the script, which starts the 
+  streaming-sink (either a VNC-viewer in reverse-.connection or ffplay).
+- 'Start_Streaming_Script_Args_Template': Template with Command-line-arguments for 
+  this script.
+- 'Manage_Screen_Resolutions_Script_Path': Path to the script, which manages 
+  screen-resolutions.
+- 'Manage_Screen_Resolutions_Script_Args_Template': Template with 
+  Command-line-arguments for this script.
+- 'urls': Has a value of "http://*:80", which means that the webserver listens on all 
           interfaces on port 80.
 
-Remark: In `VncViewerArgs` and `FFplayArgs` the placeholder `ppppp` is replaced by the 
-port-number provided by the user, when calling vncviewer.exe / FFplay.exe.
+The placeholders in 'xxx_Args_Template' 
+are replaced by the real comman-line-arguments before a shell / script is started.
 
 The `Startup`-object defined in `Startup.cs` receives all the configuration-parameters
 provided by the different sources (command-line-arguments, appsettings.json) when it is
@@ -79,9 +93,9 @@ object implementing the `IConfiguration`-interface to the constructor of the
 `Startup`-class. The constructor stores this opject in a proprty named `Configuration`.
 
 Within the methods of the `Startup`-class the configuration-parameters can be read
-in a simple way. For example, to get the path to the VNC-viewer-executable (provided in
-appsettings.json or by command-line-parameters) the code in `Startup.cs` just reads the
-value of `Configuration["PathToTightVncViewer"]`.
+in a simple way. For example, to get the value of 'PathToStartStreamingScript' 
+(provided in appsettings.json or by command-line-parameters) the code in `Startup.cs` 
+just reads the value of `Configuration["PathToStartStreamingScript"]`.
 
 This used methodology is a form of "dependecy injection", which is called
 "constructor-injection". This design-pattern seems to be widely used in the 
