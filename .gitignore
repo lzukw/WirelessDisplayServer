@@ -1,7 +1,7 @@
 # Own additions: 
 
 # Ignore everthing in folder Third-party, exept the three zip-files
-Third_Party
+ThirdParty
 !ThirdParty/README.md
 
 # Ignore build folder
