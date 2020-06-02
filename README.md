@@ -84,10 +84,30 @@ where `Program.cs` and `Startup.cs` are):
 
 ```
 mkdir ..\WirelessDisplayServer_executable 
-dotnet publish -c Release -o ..\WirelessDisplayServer_executable\WirelessDisplayServer -r win-x64 --self-contained
+dotnet publish -c Release -o ..\WirelessDisplayServer_executable\WirelessDisplayServer -r win-x64 --self-contained true
 ```
-The paremter `--self-contained` creates a 'stand-alone' executable version. This 
-paremeter can be omitted, if .NET-Core version 3.1 is installed on the target system.
+
+On Linux, replace `win-x64` with `linux-x64` and on macOS with `osx-x64`.
+
+The parameter `--self-contained true` creates a self-contained (stand-alone) 
+executable version for the given operating system. Such
+a version also contains the used dotnet core framework, so on the 
+target-computer no dotnet-core-framework needs to be installed. Self-contained
+builds only work for the given platform, and consume most disk-space.
+
+With `--self-contained false` a "runtime-dependent"-Version of the program, 
+which only runs on the specified platform. The "runtime-dependet" version also
+requires, that dotnet core (version 3.1) is installed on the computer. This
+variant conumes the least disk-space.
+
+With `--self-contained false` and omitting `-r ...-x64`, A "runtime-dependent" 
+version can be built, that runs on every platform (operating-system). 
+The only requirement is, that dotnet-core runtime must be installed on the 
+target-computer.
+
+If a "runtime-dependet" version is executed on a computer without an installed
+dotnet-core-framework, a popup appears and offers the user the possibility to
+install the missing dotnet-core-framework.
 
 The three folders
 
@@ -95,7 +115,9 @@ The three folders
 - [Scripts], and
 - [ThirdParty]
 
-contain the whole executable program.
+contain the whole executable program. The file to be executed is
+[WirelessDisplayServer_executable\WirelessDisplayServer.exe] on Windows and
+[WirelessDisplayServer_executable/WirelessDisplayServer] on Linux.
 
 ## API-calls
 
